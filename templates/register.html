@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero-wrapper" style="background-image: url('{{ url_for('static', filename='images/Gemini_Generated_Image_8y59p68y59p68y59.png') }}');">
+    
+    <div class="hero-bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <div class="hero-glass-card auth-card" style="max-width: 450px; padding: 40px 30px;">
+        <h2><i class="fa-solid fa-user-plus"></i> 註冊新帳號</h2>
+        <form action="{{ url_for('auth.register') }}" method="POST">
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope"></i> 設定 Email 帳號:</label>
+                <input type="email" id="email" name="email" placeholder="example@email.com" required>
+            </div>
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock"></i> 設定密碼:</label>
+                <input type="password" id="password" name="password" placeholder="請輸入安全密碼" required>
+            </div>
+            <button type="submit" class="btn btn-success"><i class="fa-solid fa-check"></i> 確認註冊</button>
+        </form>
+        
+        <div class="auth-footer" style="margin-top: 20px;">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-login-full"><i class="fa-solid fa-arrow-left"></i> 返回登入畫面</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

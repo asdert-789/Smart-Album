@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="hero-wrapper" style="background-image: url('{{ url_for('static', filename='images/Gemini_Generated_Image_8y59p68y59p68y59.png') }}');">
+    
+    <div class="hero-bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+    </div>
+
+    <div class="hero-glass-card">
+        <div class="hero-brand">
+            <span class="ai-badge"><i class="fa-solid fa-wand-magic-sparkles"></i> AI Powered</span>
+            <h1>智慧相簿<span>次世代系統</span></h1>
+            <p class="subtitle">讓回憶更聰明，珍藏你的每一刻。結合多模態智慧與精準偵測技術。</p>
+        </div>
+
+        <div class="hero-cta-group">
+            <a href="{{ url_for('gallery.index') }}" class="btn-hero-primary">
+                <i class="fa-solid fa-arrow-right-to-bracket"></i> 開始體驗
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn-hero-secondary">
+                <i class="fa-solid fa-user-plus"></i> 註冊新帳號
+            </a>
+        </div>
+
+        <div class="hero-features-grid">
+            <div class="feature-mini-card">
+                <div class="icon-wrap"><i class="fa-solid fa-brain"></i></div>
+                <div class="text-wrap">
+                    <h3>BLIP 情境敘事</h3>
+                    <p>自動生成圖片中文故事描述</p>
+                </div>
+            </div>
+            <div class="feature-mini-card">
+                <div class="icon-wrap"><i class="fa-solid fa-bullseye"></i></div>
+                <div class="text-wrap">
+                    <h3>YOLOv8 偵測</h3>
+                    <p>毫秒級精準物件標記與開關</p>
+                </div>
+            </div>
+            <div class="feature-mini-card">
+                <div class="icon-wrap"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <div class="text-wrap">
+                    <h3>安全雲端儲存</h3>
+                    <p>智慧結構化歸檔與隱私隔離</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

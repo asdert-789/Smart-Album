@@ -1,0 +1,70 @@
+<form action="{{ url_for('gallery.upload_image') }}" method="POST" enctype="multipart/form-data" id="upload-form">
+    <input type="file" name="image" id="image-file-input" accept="image/*" multiple style="display: none !important;">
+    
+    <div id="preview-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-images"></i> 待上傳圖片預覽</h3>
+                <button type="button" class="close-modal-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modal-preview-list"></div>
+            <div class="modal-footer">
+                <button type="button" class="id-btn-add" onclick="triggerFileInput()"><i class="fa-solid fa-plus"></i> 繼續新增</button>
+                <button type="button" class="id-btn-submit" onclick="submitUploadForm()"><i class="fa-solid fa-cloud-arrow-up"></i> 開始上傳</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    let selectedFiles = [];
+    const fileInput = document.getElementById('image-file-input');
+    const modal = document.getElementById('preview-modal');
+    const previewList = document.getElementById('modal-preview-list');
+
+    function triggerFileInput() {
+        if (!checkLoginStatus()) return;
+        fileInput.value = '';
+        fileInput.click(); 
+    }
+    
+    fileInput.addEventListener('change', function(e) {
+        const newFiles = Array.from(e.target.files);
+        if (newFiles.length === 0) return;
+        selectedFiles = selectedFiles.concat(newFiles);
+        renderPreviewList();
+        modal.style.setProperty('display', 'flex', 'important'); 
+    });
+
+    function renderPreviewList() {
+        previewList.innerHTML = ''; 
+        if (selectedFiles.length === 0) { previewList.innerHTML = '<p class="empty-text">沒有待上傳的圖片。</p>'; return; }
+        selectedFiles.forEach((file, index) => {
+            const reader = new FileReader();
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'preview-item';
+            reader.onload = function(event) {
+                itemDiv.innerHTML = `
+                    <div class="preview-left">
+                        <img src="${event.target.result}" alt="${file.name}">
+                        <span class="preview-name">${file.name}</span>
+                    </div>
+                    <button type="button" class="preview-del-btn" onclick="removeFile(${index})"><i class="fa-solid fa-trash-can"></i> 刪除</button>
+                `;
+            };
+            reader.readAsDataURL(file);
+            previewList.appendChild(itemDiv);
+        });
+    }
+
+    function removeFile(index) { selectedFiles.splice(index, 1); renderPreviewList(); }
+    function closeModal() { modal.style.setProperty('display', 'none', 'important'); selectedFiles = []; fileInput.value = ''; }
+    
+    function submitUploadForm() {
+        if (selectedFiles.length === 0) { alert('請至少選擇一張圖片！'); return; }
+        const dataTransfer = new DataTransfer();
+        selectedFiles.forEach(file => { dataTransfer.items.add(file); });
+        fileInput.files = dataTransfer.files;
+        document.getElementById('upload-form').submit();
+    }
+</script>

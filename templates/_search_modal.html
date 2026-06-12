@@ -1,0 +1,198 @@
+<div id="search-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-magnifying-glass"></i> 智慧標籤搜尋</h3>
+            <button type="button" class="close-modal-btn" onclick="closeSearchModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label><i class="fa-solid fa-keyboard"></i> 已選擇的搜尋標籤（以逗號分隔）</label>
+                <input type="text" id="search-tags-input" placeholder="例如：貓, 少女, 藍天">
+            </div>
+
+            <div class="form-group">
+                <label><i class="fa-solid fa-filter"></i> 篩選模式</label>
+                <div class="search-mode-options">
+                    <label class="radio-label">
+                        <input type="radio" name="search-logic" value="AND" checked> 
+                        <strong>模式 A：全部符合</strong> (需同時包含所有標籤)
+                    </label>
+                    <label class="radio-label" style="margin-top: 8px; display: block;">
+                        <input type="radio" name="search-logic" value="OR"> 
+                        <strong>模式 B：任一符合</strong> (包含任一標籤即可)
+                    </label>
+                </div>
+            </div>
+
+            <div class="ai-info-group" style="margin-top: 20px;">
+                <label><i class="fa-solid fa-tags"></i> 系統現有標籤（點擊直接加入搜尋）</label>
+                <div class="ai-tag-container" id="search-modal-available-tags"></div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="id-btn-add" style="border-color: #8a7360; color: #8a7360;" onclick="clearSearchInput()">清空條件</button>
+            <button type="button" class="id-btn-submit" style="background-color: #4c6ef5; box-shadow: 0 4px 12px rgba(76, 110, 245, 0.25);" onclick="executeGridSearch()"><i class="fa-solid fa-filter"></i> 開始篩選</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let isSearchActive = false;
+
+    function handleSearchButtonClick() {
+        if (!checkLoginStatus()) return;
+        if (isSearchActive) {
+            resetSearchFilter();
+        } else {
+            openSearchModal();
+        }
+    }
+
+    function openSearchModal() {
+        if (!checkLoginStatus()) return; 
+
+        const searchModal = document.getElementById('search-modal');
+        const tagsContainer = document.getElementById('search-modal-available-tags');
+        
+        if (!searchModal) return;
+        
+        tagsContainer.innerHTML = `<span class="badge-tag-empty"><i class="fa-solid fa-spinner fa-spin"></i> 正在彙整所有圖片的 AI 智慧標籤...</span>`;
+        searchModal.style.setProperty('display', 'flex', 'important');
+
+        fetch('/get_all_tags')
+        .then(res => {
+            if (!res.ok) { return res.json().then(err => { throw err; }); }
+            return res.json();
+        })
+        .then(data => {
+            tagsContainer.innerHTML = ''; 
+            if (data.success && data.tags.length > 0) {
+                data.tags.forEach(tag => {
+                    tagsContainer.innerHTML += `
+                        <span class="badge-tag" style="cursor:pointer; background-color: #ffefe5; color: #ff7e47; border: 1px solid #ffca99; margin: 4px; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; font-weight: 600; font-size: 13px;" onclick="addTagToSearchInput('${tag}')">
+                            <i class="fa-solid fa-plus" style="font-size: 11px;"></i> ${tag}
+                        </span>`;
+                });
+            } else {
+                tagsContainer.innerHTML = `<span class="badge-tag-empty">目前系統中暫無任何有效的 AI 辨識標籤。</span>`;
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            if (err.message === '請先登入' || err.status === 401) {
+                closeSearchModal();
+                checkLoginStatus();
+            } else {
+                tagsContainer.innerHTML = `<span class="badge-tag-empty" style="color: #ee5253;">標籤讀取失敗，請確認伺服器狀態。</span>`;
+            }
+        });
+    }
+
+    function addTagToSearchInput(tag) {
+        const input = document.getElementById('search-tags-input');
+        let currentValues = input.value.split(',').map(t => t.trim()).filter(t => t !== "");
+        if (!currentValues.includes(tag)) {
+            currentValues.push(tag);
+            input.value = currentValues.join(', ');
+        }
+    }
+
+    function executeGridSearch() {
+        if (!checkLoginStatus()) return;
+
+        const inputVal = document.getElementById('search-tags-input').value;
+        if (!inputVal.trim()) {
+            showCustomToast('請輸入或選擇至少一個標籤進行篩選！', 'info');
+            return;
+        }
+
+        const targetTags = inputVal.split(',').map(t => t.trim()).filter(t => t !== "");
+        const searchLogic = document.querySelector('input[name="search-logic"]:checked').value;
+        
+        fetch('/search_tags', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tags: targetTags, logic: searchLogic })
+        })
+        .then(res => {
+            if (!res.ok) { return res.json().then(err => { throw err; }); }
+            return res.json();
+        })
+        .then(data => {
+            if (data.success) {
+                const matchedImages = data.matched_images || []; 
+                const thumbnailItems = document.querySelectorAll('.thumbnail-list .thumbnail-item');
+                let matchCount = 0;
+
+                thumbnailItems.forEach(item => {
+                    const filename = item.dataset.filename;
+                    if (matchedImages.includes(filename)) {
+                        item.style.display = 'block';
+                        matchCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+
+                const searchBtn = document.getElementById('btn-gallery-search');
+                if (searchBtn) searchBtn.classList.add('active-filter-mode');
+                isSearchActive = true;
+                
+                closeSearchModal();
+
+                const thumbnailList = document.querySelector('.thumbnail-list');
+                if (thumbnailList) {
+                    const tempEmpty = thumbnailList.querySelector('.temp-empty');
+                    if (matchCount === 0) {
+                        if (!tempEmpty) {
+                            const p = document.createElement('p');
+                            p.className = 'empty-text temp-empty';
+                            p.textContent = '沒有符合篩選條件的圖片。';
+                            thumbnailList.appendChild(p);
+                        }
+                    } else {
+                        if (tempEmpty) tempEmpty.remove();
+                    }
+                }
+            } else {
+                alert('搜尋失敗：' + (data.message || '未知錯誤'));
+            }
+        })
+        .catch(err => {
+            console.error("錯誤詳情:", err);
+            if (err.message === '請先登入') {
+                closeSearchModal();
+                checkLoginStatus();
+            } else {
+                alert('系統提示：搜尋時發生非預期錯誤！');
+            }
+        });
+    }
+
+    function resetSearchFilter() {
+        const searchBtn = document.getElementById('btn-gallery-search');
+        if (searchBtn) searchBtn.classList.remove('active-filter-mode');
+        isSearchActive = false;
+
+        document.querySelectorAll('.thumbnail-list .thumbnail-item').forEach(item => {
+            item.style.display = 'block';
+        });
+
+        const tempEmpty = document.querySelector('.temp-empty');
+        if (tempEmpty) tempEmpty.remove();
+        
+        clearSearchInput();
+    }
+
+    function closeSearchModal() {
+        const searchModal = document.getElementById('search-modal');
+        if (searchModal) { searchModal.style.setProperty('display', 'none', 'important'); }
+    }
+
+    function clearSearchInput() {
+        const searchInput = document.getElementById('search-tags-input');
+        if (searchInput) searchInput.value = '';
+        const defaultRadio = document.querySelector('input[name="search-logic"][value="AND"]');
+        if (defaultRadio) defaultRadio.checked = true;
+    }
+</script>

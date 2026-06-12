@@ -1,0 +1,93 @@
+<div id="download-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-card" style="max-width: 450px !important;">
+        <div class="modal-header" style="padding: 18px 24px !important;">
+            <h3 style="color: #4c6ef5 !important;"><i class="fa-solid fa-download"></i> 下載相片確認</h3>
+            <button type="button" class="close-modal-btn" onclick="closeDownloadModal()">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 20px 24px !important; text-align: left;">
+            <h4 id="download-modal-count" style="margin: 0 0 10px 0; border: none; padding: 0; color: #4a3728; font-size: 16px;">
+                您已勾選了 0 張圖片
+            </h4>
+            <p style="margin: 0; color: #8a7360; font-size: 14px; line-height: 1.5;">
+                請選擇您想要下載的圖片類型：
+            </p>
+        </div>
+        <div class="modal-footer" style="padding: 14px 24px !important; background-color: #fffbf9 !important; display: flex; gap: 10px; justify-content: flex-end;">
+            <button type="button" class="id-btn-add" onclick="closeDownloadModal()" style="border-color: #ba9e88 !important; color: #8a7360 !important; padding: 8px 14px !important; font-size: 13px !important; cursor: pointer; margin: 0;">取消</button>
+            <button type="button" class="id-btn-submit" id="download-orig-submit-btn" style="background-color: #8a7360 !important; box-shadow: 0 4px 12px rgba(138, 115, 96, 0.25) !important; padding: 8px 16px !important; font-size: 13px !important; cursor: pointer; margin: 0;"><i class="fa-solid fa-image"></i> 下載原圖</button>
+            <button type="button" class="id-btn-submit" id="download-yolo-submit-btn" style="background-color: #ff7e47 !important; box-shadow: 0 4px 12px rgba(255, 126, 71, 0.25) !important; padding: 8px 16px !important; font-size: 13px !important; cursor: pointer; margin: 0;"><i class="fa-solid fa-vector-square"></i> 下載 YOLO 圖</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentSelectedCheckboxes = [];
+
+    function downloadSelectedImages() {
+        if (!checkLoginStatus()) return;
+
+        currentSelectedCheckboxes = document.querySelectorAll('.img-select-checkbox:checked');
+        if (currentSelectedCheckboxes.length === 0) { 
+            showCustomToast('請先勾選想要下載的圖片！', 'danger'); 
+            return; 
+        }
+        
+        const countText = document.getElementById('download-modal-count');
+        if (countText) { countText.innerText = `您已勾選了 ${currentSelectedCheckboxes.length} 張圖片`; }
+
+        const origBtn = document.getElementById('download-orig-submit-btn');
+        const yoloBtn = document.getElementById('download-yolo-submit-btn');
+        
+        const newOrigBtn = origBtn.cloneNode(true);
+        const newYoloBtn = yoloBtn.cloneNode(true);
+        origBtn.parentNode.replaceChild(newOrigBtn, origBtn);
+        yoloBtn.parentNode.replaceChild(newYoloBtn, yoloBtn);
+
+        newOrigBtn.addEventListener('click', () => executeBatchDownload('orig'));
+        newYoloBtn.addEventListener('click', () => executeBatchDownload('yolo'));
+
+        document.getElementById('download-modal').style.display = 'flex';
+    }
+
+    function closeDownloadModal() {
+        const modal = document.getElementById('download-modal');
+        if (modal) { modal.style.display = 'none'; }
+    }
+
+    function executeBatchDownload(mode) {
+        closeDownloadModal();
+
+        const filenames = Array.from(currentSelectedCheckboxes).map(cb => cb.dataset.filename);
+
+        fetch('/download_images', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                filenames: filenames,
+                mode: mode
+            })
+        })
+        .then(response => {
+            if (!response.ok) throw new Error('下載失敗');
+            return response.blob();
+        })
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.href = url;
+            link.download = mode === 'yolo' ? 'yolo_images.zip' : 'original_images.zip';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            window.URL.revokeObjectURL(url);
+
+            showCustomToast(`已開始下載 ${currentSelectedCheckboxes.length} 張圖片 ZIP！`, 'success');
+        })
+        .catch(err => {
+            showCustomToast('下載失敗，請確認圖片是否存在或已完成 AI 分析。', 'danger');
+        });
+    }
+</script>

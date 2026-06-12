@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>智慧相簿</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div id="toast-container" class="toast-container" style="position: fixed !important; top: 10%; left: 50%; transform: translateX(-50%); z-index: 999999; display: flex; flex-direction: column; gap: 16px; pointer-events: none; align-items: center; width: 100%; max-width: 550px;"></div>
+
+    <header class="navbar">
+        <div class="nav-left">
+            <a href="{{ url_for('gallery.home') }}" class="logo"><i class="fa-solid fa-images"></i> 智慧相簿</a>
+        </div>
+        
+        <div class="nav-center">
+            {% block nav_center %}{% endblock %}
+        </div>
+        
+        <div class="nav-right">
+            {% if session.get('user_id') %}
+                <span class="user-info"><i class="fa-solid fa-user"></i> {{ session.get('user_email') }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-logout"><i class="fa-solid fa-right-from-bracket"></i> 登出</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}" class="btn btn-login"><i class="fa-solid fa-right-to-bracket"></i> 登入</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const flashMessages = [
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                            { category: "{{ category }}", text: "{{ message }}" },
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            ];
+
+            flashMessages.forEach(msg => {
+                showToastNotification(msg.text, msg.category);
+            });
+        });
+
+        function showToastNotification(text, category) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+
+            const toast = document.createElement('div');
+            toast.style.pointerEvents = 'auto'; 
+            
+            let categoryClass = 'toast-info';
+            let iconHtml = '<i class="fa-solid fa-circle-info"></i>';
+            
+            if (category === 'danger' || category === 'error') {
+                categoryClass = 'toast-danger';
+                iconHtml = '<i class="fa-solid fa-circle-exclamation"></i>';
+            } else if (category === 'success') {
+                categoryClass = 'toast-success';
+                iconHtml = '<i class="fa-solid fa-circle-check"></i>';
+            }
+
+            toast.className = `custom-toast ${categoryClass}`;
+            // 💡 內文加上較大的間距樣式
+            toast.innerHTML = `${iconHtml} <span style="margin-left: 12px; line-height: 1.4;">${text}</span>`;
+
+            container.appendChild(toast);
+
+            // 🕒 放大版的卡片我們讓它多停留一點點時間 (4.5秒) 後由上往下淡出
+            setTimeout(() => {
+                toast.classList.add('toast-fade-out');
+                setTimeout(() => {
+                    toast.remove();
+                }, 400);
+            }, 10000);
+        }
+    </script>
+</body>
+</html>

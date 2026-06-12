@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% include '_upload_modal.html' %}
+
+{% include '_search_modal.html' %}
+
+{% include '_download_modal.html' %}
+
+{% include '_gallery_main.html' %}
+
+<script>
+    const isLoggedIn = "{{ 'true' if session.get('user_id') else 'false' }}" === "true";
+    const loginUrl = "{{ url_for('auth.login') }}";
+
+    function checkLoginStatus() {
+        if (!isLoggedIn) {
+            showCustomToast('偵測到您尚未登入！請先登入系統以啟用智慧相簿功能。', 'danger');
+            return false;
+        }
+        return true;
+    }
+
+    // 共用的自訂 Toast 訊息提示
+    function showCustomToast(message, type = 'danger') {
+        const container = document.getElementById('global-toast-container'); 
+        if (!container) return;
+
+        let icon = 'fa-circle-exclamation';
+        if (type === 'success') icon = 'fa-circle-check';
+        if (type === 'info') icon = 'fa-circle-info';
+
+        const toast = document.createElement('div');
+        toast.className = `custom-toast toast-${type}`;
+        toast.innerHTML = `
+            <i class="fa-solid ${icon}"></i>
+            <span>${message}</span>
+        `;
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.add('toast-fade-out');
+            toast.addEventListener('transitionend', () => {
+                toast.remove();
+            });
+        }, 3000);
+    }
+    
+    // 共用的自訂 Confirm 視窗
+    function showCustomConfirm(title, message, onConfirm) {
+        const overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.style.setProperty('display', 'flex', 'important');
+
+        overlay.innerHTML = `
+            <div class="modal-card" style="max-width: 450px !important;">
+                <div class="modal-header" style="padding: 18px 24px !important;">
+                    <h3 style="color: #ee5253 !important;"><i class="fa-solid fa-circle-exclamation"></i> 系統確認</h3>
+                    <button type="button" class="close-modal-btn" id="custom-confirm-close">&times;</button>
+                </div>
+                <div class="modal-body" style="padding: 20px 24px !important; text-align: left;">
+                    <h4 style="margin: 0 0 10px 0; border: none; padding: 0; color: #4a3728; font-size: 16px;">${title}</h4>
+                    <p style="margin: 0; color: #8a7360; font-size: 14px; line-height: 1.5;">${message}</p>
+                </div>
+                <div class="modal-footer" style="padding: 14px 24px !important; background-color: #fffbf9 !important;">
+                    <button type="button" class="id-btn-add" id="custom-confirm-cancel" style="border-color: #ba9e88 !important; color: #8a7360 !important; padding: 8px 18px !important; font-size: 13px !important; cursor: pointer;">取消</button>
+                    <button type="button" class="id-btn-submit" id="custom-confirm-btn" style="background-color: #ee5253 !important; box-shadow: 0 4px 12px rgba(238, 82, 83, 0.25) !important; padding: 8px 20px !important; font-size: 13px !important; cursor: pointer;">確認執行</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        function dismissConfirm() {
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.2s ease';
+            setTimeout(() => overlay.remove(), 200);
+        }
+
+        overlay.querySelector('#custom-confirm-close').addEventListener('click', dismissConfirm);
+        overlay.querySelector('#custom-confirm-cancel').addEventListener('click', dismissConfirm);
+        
+        overlay.querySelector('#custom-confirm-btn').addEventListener('click', () => {
+            dismissConfirm();
+            if (typeof onConfirm === 'function') onConfirm();
+        });
+
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) dismissConfirm();
+        });
+    }
+</script>
+
+<div id="global-toast-container" style="position: fixed; top: 30px; left: 50%; transform: translateX(-50%); z-index: 100000; pointer-events: none; display: flex; flex-direction: column; gap: 10px;"></div>
+
+{% endblock %}
